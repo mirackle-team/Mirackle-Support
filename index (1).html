@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mirackle — Support Report</title>
+<meta name="theme-color" content="#08080A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#08080A;
+  --plate:#121216;
+  --plate-2:#1A1A20;
+  --edge:#2A2A32;
+  --edge-lit:#3A3A45;
+  --white:#FFFFFF;
+  --text:#EDEDF0;
+  --muted:#8E8E9A;
+  --red:#D9382C;
+  --red-deep:#A32A21;
+  --red-glow:rgba(217,56,44,.35);
+  --pad:20px;
+  --bevel:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--void)}
+body{
+  color:var(--text);
+  font-family:"Barlow",system-ui,sans-serif;font-size:17px;line-height:1.5;
+  min-height:100vh;overflow-x:hidden;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+/* spatial backdrop: depth field + hex glow */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(70% 45% at 50% -8%, rgba(217,56,44,.20), transparent 62%),
+    radial-gradient(58% 40% at 50% 108%, rgba(217,56,44,.10), transparent 60%),
+    var(--void);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);
+  background-size:36px 36px;
+  -webkit-mask-image:radial-gradient(70% 55% at 50% 30%,#000,transparent 78%);
+          mask-image:radial-gradient(70% 55% at 50% 30%,#000,transparent 78%);
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 var(--pad) 56px;position:relative}
+
+/* ---------- header ---------- */
+header{position:sticky;top:0;z-index:30;
+  background:linear-gradient(180deg,rgba(8,8,10,.97),rgba(8,8,10,.82));
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--edge)}
+.hbar{max-width:560px;margin:0 auto;padding:13px var(--pad);
+  display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand{display:flex;align-items:center;gap:10px}
+.hex{width:26px;height:29px;flex:none;filter:drop-shadow(0 2px 8px var(--red-glow))}
+.wordmark{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:20px;
+  letter-spacing:.19em;text-transform:uppercase;line-height:1;color:var(--white)}
+.lang{display:flex;border:1px solid var(--edge);border-radius:9px;overflow:hidden;
+  background:var(--plate)}
+.lang button{background:none;border:0;color:var(--muted);
+  font:600 12px "Barlow";letter-spacing:.1em;padding:8px 12px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--red);color:var(--white)}
+
+/* depth meter */
+.pix{display:flex;gap:5px;padding:11px var(--pad) 0;max-width:560px;margin:0 auto}
+.pix i{flex:1;height:3px;background:var(--plate-2);transition:all .35s}
+.pix i.on{background:var(--red);box-shadow:0 0 10px var(--red-glow)}
+
+/* ---------- type ---------- */
+h1{font-family:"Chakra Petch",sans-serif;font-weight:700;font-size:33px;line-height:1.06;
+  letter-spacing:.005em;margin:28px 0 9px;text-transform:uppercase;color:var(--white)}
+.sub{color:var(--muted);font-size:15.5px;margin:0 0 24px;max-width:44ch}
+.eyebrow{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--red);margin:0 0 6px}
+label{display:block;font-family:"Chakra Petch",sans-serif;font-size:12px;font-weight:600;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
+label .r{color:var(--red);margin-left:4px}
+.hint{font-size:13.5px;color:var(--muted);margin:7px 0 0;line-height:1.45}
+
+/* ---------- inputs ---------- */
+input,select,textarea{width:100%;background:var(--plate);color:var(--text);
+  border:1px solid var(--edge);border-radius:10px;padding:14px;
+  font:400 16px "Barlow";appearance:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+textarea{min-height:112px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{
+  outline:none;border-color:var(--red);box-shadow:0 0 0 3px var(--red-glow)}
+input.bad{border-color:var(--red)}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%238E8E9A' stroke-width='2' fill='none'/></svg>");
+  background-repeat:no-repeat;background-position:right 14px center}
+
+/* ---------- spatial tiles ---------- */
+.card{position:relative;display:flex;gap:15px;align-items:center;width:100%;text-align:left;
+  color:var(--text);font:400 16px "Barlow";cursor:pointer;margin-bottom:11px;padding:17px 18px;
+  background:linear-gradient(155deg,var(--plate-2),var(--plate));
+  border:1px solid var(--edge);
+  border-radius:var(--bevel);
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+  box-shadow:0 10px 26px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+  transform:translateZ(0);transition:transform .16s,border-color .16s,box-shadow .16s}
+.card:hover{border-color:var(--edge-lit);transform:translateY(-2px);
+  box-shadow:0 16px 34px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.07)}
+.card:active{transform:translateY(0)}
+.card .n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--red);flex:none;
+  width:30px;text-align:center;letter-spacing:.04em}
+.card b{display:block;font-family:"Chakra Petch",sans-serif;font-weight:600;font-size:17.5px;
+  letter-spacing:.02em;color:var(--white);margin-bottom:3px}
+.card small{color:var(--muted);font-size:13.5px;line-height:1.42;display:block}
+
+.opt{display:flex;align-items:center;gap:13px;background:var(--plate);
+  border:1px solid var(--edge);border-radius:10px;padding:14px 15px;margin-bottom:9px;
+  cursor:pointer;transition:border-color .15s,background .15s;font-size:16px}
+.opt[data-on="1"]{border-color:var(--red);background:linear-gradient(150deg,rgba(217,56,44,.14),var(--plate));
+  box-shadow:0 0 0 1px rgba(217,56,44,.25)}
+.opt .box{width:19px;height:19px;border:2px solid var(--edge-lit);border-radius:5px;flex:none;position:relative}
+.opt[data-on="1"] .box{background:var(--red);border-color:var(--red)}
+.opt[data-on="1"] .box::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;
+  border:solid var(--white);border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+/* ---------- buttons ---------- */
+button.primary{width:100%;border:0;cursor:pointer;margin-top:28px;padding:18px;
+  background:linear-gradient(180deg,var(--red),var(--red-deep));color:var(--white);
+  font:600 16px "Chakra Petch";letter-spacing:.12em;text-transform:uppercase;
+  border-radius:11px;box-shadow:0 10px 26px rgba(217,56,44,.32);transition:transform .14s,filter .14s}
+button.primary:hover{filter:brightness(1.09);transform:translateY(-1px)}
+button.primary:disabled{background:var(--plate-2);color:var(--muted);box-shadow:none;
+  cursor:not-allowed;transform:none}
+button.ghost{width:100%;background:var(--plate);color:var(--muted);border:1px solid var(--edge);
+  border-radius:11px;padding:14px;cursor:pointer;margin-top:11px;
+  font:600 13px "Chakra Petch";letter-spacing:.12em;text-transform:uppercase}
+button.ghost:hover{color:var(--text);border-color:var(--edge-lit)}
+.two{display:flex;gap:11px}.two>*{flex:1;min-width:0}
+
+/* ---------- cabinet wall, rendered in perspective ---------- */
+.stage{perspective:900px;margin-top:14px}
+.gridwrap{background:linear-gradient(160deg,var(--plate-2),var(--plate));
+  border:1px solid var(--edge);border-radius:var(--bevel);padding:18px 16px 22px;
+  transform:rotateX(9deg);transform-origin:50% 100%;
+  box-shadow:0 26px 50px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.05)}
+.gridbox{display:grid;gap:3px;margin:0 auto}
+.cell{aspect-ratio:1;background:#0D0D11;border:1px solid var(--edge);border-radius:2px;
+  cursor:pointer;transition:background .12s,box-shadow .12s}
+.cell:hover{border-color:var(--edge-lit)}
+.cell[data-on="1"]{background:var(--red);border-color:var(--red);
+  box-shadow:0 0 12px var(--red-glow)}
+.floor{height:16px;margin:0 auto;width:70%;
+  background:radial-gradient(50% 100% at 50% 0,rgba(217,56,44,.22),transparent 70%)}
+
+/* ---------- media slots ---------- */
+.shot{display:flex;gap:13px;align-items:center;padding:14px;margin-bottom:10px;
+  background:var(--plate);border:1px solid var(--edge);border-radius:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.shot.done{border-color:var(--red)}
+.thumb{width:56px;height:56px;border-radius:9px;object-fit:cover;flex:none;
+  background:var(--plate-2);border:1px solid var(--edge)}
+.shot .t{flex:1;min-width:0}
+.shot b{display:block;font-family:"Chakra Petch",sans-serif;font-weight:600;font-size:15px;color:var(--white)}
+.shot small{color:var(--muted);font-size:12.5px;line-height:1.35}
+.shot input{display:none}
+.pick{flex:none;border:1px solid var(--edge-lit);background:var(--plate-2);color:var(--text);
+  border-radius:9px;padding:11px 14px;cursor:pointer;
+  font:600 11.5px "Chakra Petch";letter-spacing:.11em;text-transform:uppercase}
+.pick:hover{border-color:var(--red);color:var(--white)}
+
+/* ---------- review / done ---------- */
+.rev{background:linear-gradient(160deg,var(--plate-2),var(--plate));
+  border:1px solid var(--edge);border-radius:var(--bevel);padding:6px 18px;
+  box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.row{display:flex;justify-content:space-between;gap:16px;padding:13px 0;
+  border-bottom:1px solid var(--edge);font-size:15px}
+.row:last-child{border:0}
+.row span:first-child{color:var(--muted);flex:none;font-size:13px;
+  font-family:"Chakra Petch",sans-serif;letter-spacing:.09em;text-transform:uppercase}
+.row span:last-child{text-align:right;word-break:break-word;color:var(--white)}
+.seal{text-align:center;padding:14px 0 4px}
+.seal svg{filter:drop-shadow(0 4px 22px var(--red-glow))}
+.tid{font-family:"JetBrains Mono",monospace;font-size:27px;color:var(--white);
+  letter-spacing:.06em;text-align:center;margin:8px 0 22px}
+.note{background:linear-gradient(150deg,rgba(217,56,44,.13),var(--plate));
+  border:1px solid var(--edge);border-left:3px solid var(--red);border-radius:0 12px 12px 0;
+  padding:15px 17px;font-size:14.5px;color:var(--muted);margin-top:22px;line-height:1.5}
+details{margin-top:20px}
+summary{color:var(--muted);font-size:13px;cursor:pointer;letter-spacing:.04em}
+pre{background:var(--plate);border:1px solid var(--edge);border-radius:10px;padding:14px;
+  font:500 11.5px "JetBrains Mono";white-space:pre-wrap;word-break:break-word;
+  max-height:260px;overflow:auto;color:var(--muted);margin-top:10px}
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.35);
+  border-top-color:var(--white);border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}
+  .gridwrap{transform:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hbar">
+    <div class="brand">
+      <svg class="hex" viewBox="0 0 26 29" aria-hidden="true">
+        <path d="M13 1L24.5 7.6v13.8L13 28 1.5 21.4V7.6z" fill="none" stroke="#D9382C" stroke-width="2.4"/>
+        <path d="M8 20V11l5 4 5-4v9" fill="none" stroke="#FFF" stroke-width="2.2" stroke-linejoin="round"/>
+      </svg>
+      <div class="wordmark">Mirackle</div>
+    </div>
+    <div class="lang">
+      <button id="en" onclick="setLang('en')" aria-pressed="true">EN</button>
+      <button id="es" onclick="setLang('es')" aria-pressed="false">ES</button>
+    </div>
+  </div>
+  <div class="pix" id="pix"></div>
+</header>
+<div class="wrap" id="app"></div>
+
+<script>
+/* =====================================================================
+   MIRACKLE — SUPPORT REPORT
+   Single-file client app. Deploy to Cloudflare Pages.
+   Priority is computed internally and sent to the team. It is never
+   displayed to the customer.
+   ===================================================================== */
+
+const API_ENDPOINT   = "/api/submit";           // Worker route (phase 2)
+const SUPPORT_EMAIL  = "contact@mirackle.us";
+const MAX_VIDEO_SECONDS = 20;
+
+/* real Mirackle catalog */
+const MODELS=["P1.25mm","P1.53mm","P1.56mm 500x500","P1.86mm","P1.99mm",
+"P2.5mm 500x500","P2.5mm 960x960","P2.5mm Curved","P2.5mm PRO","P2.97mm",
+"P3.07mm 960x960","P3.91mm","P4mm 960x960","P4.81mm Double","P5mm",
+"P2.9mm 500x500 Outdoor","P2.9mm 500x1000 Outdoor","P2.9 Fixed Iron Outdoor",
+"P3.91mm Outdoor","P3.91mm Double Outdoor","P5mm Outdoor","P5mm Iron Fixed Outdoor"];
+
+/* ---------------- i18n ---------------- */
+const T={
+en:{
+ cat_t:"What's going on?", cat_s:"Pick the closest match. This takes about a minute.",
+ c_ship:"Shipping or missing parts", c_ship_d:"Arrived damaged, items missing, wrong item, or never delivered",
+ c_asm:"Assembly or mounting", c_asm_d:"Stuck building the wall, the frame, or the ground support",
+ c_cfg:"Screen configuration", c_cfg_d:"Every panel shows the same image, brightness mismatch, or no image",
+ c_hw:"Hardware failure", c_hw_d:"Dead module, dead pixels, discoloration, cabinet won't power on",
+ c_oth:"Something else", c_oth_d:"Describe it in your own words",
+ id_t:"Your order", id_s:"Company and invoice number let us pull your file instantly.",
+ f_company:"Company", f_contact:"Your name", f_email:"Email", f_phone:"Phone",
+ f_order:"Invoice or order number", f_order_h:"On your Mirackle invoice. We need this to look up your panels and warranty.",
+ f_purchase:"Purchase date", f_site:"Site or venue", f_model:"Panel model",
+ f_model_h:"Pick from your invoice. Choose Not sure if you can't find it.",
+ m_pick:"Select a model", m_unsure:"Not sure",
+ det_t:"Details", det_s:"Only what matters for this case.",
+ grid_t:"Which cabinets?", grid_s:"Tap every cabinet that's affected. This is what gets the right part on the truck.",
+ g_cols:"Cabinets across", g_rows:"Cabinets high", g_build:"Draw my wall",
+ g_tap:"Tap the affected cabinets", g_sel:"selected", g_skip:"Skip this",
+ med_t:"Photos", med_s:"Photos decide whether we solve this on the phone or send a technician.",
+ m_add:"Add", m_replace:"Change", m_video:"Short video (optional)",
+ m_video_d:"Best for flickering or problems that come and go. Max 20 seconds.",
+ rev_t:"Review and send", rev_s:"One last look before it reaches our technical team.",
+ send:"Send to Mirackle", sending:"Sending", back:"Back", next:"Continue",
+ done_t:"We've got it", done_s:"Your report is with our technical team, photos and all.",
+ done_note:"Save this number. Use it on any call or email about this case.",
+ done_call:"If your screen is completely down or this affects a live event, call us now and give this number.",
+ copy:"Copy report", copied:"Copied", email_btn:"Send by email",
+ fb_t:"One more tap", fb_s:"We couldn't reach our servers, so send it from your own email instead. Attach your photos to the message.",
+ fb_show:"View report text",
+ cat_l:"Case type", req_t:"Missing information", req_b:"Company and invoice number are required so we can find your order.",
+ v_long:"That video is longer than 20 seconds. Trim it or record a shorter one.",
+ when:"When did it start", where_d:"Anything else we should know",
+ ship_what:"What happened", ship_a:["Arrived damaged","Items missing from the shipment","Wrong item received","Never delivered"],
+ ship_items:"Which items, and how many",
+ ship_noted:"Was the damage written on the delivery receipt?",
+ asm_stage:"Where are you stuck",
+ asm_a:["Unboxing and identifying parts","Ground support or frame","Joining cabinets together","Power cabling","Data cabling","Hanging or leveling"],
+ asm_mount:"Mount type", asm_m:["Ground support","Wall mount","Flown / rigged","Mobile cart"],
+ cfg_sym:"What do you see",
+ cfg_a:["Every panel shows the same image","No image at all","Only part of the wall shows image","Some panels brighter than others","Colors look wrong","Image is stretched or cut off"],
+ cfg_proc:"Processor or sending card", cfg_proc_h:"Example: NovaStar MCTRL300. Leave blank if you don't know.",
+ cfg_file:"Has a video configuration file been loaded?",
+ yes:"Yes", no:"No", unsure:"Not sure",
+ hw_sym:"What do you see",
+ hw_a:["A module is completely dark","Dead pixels","Discoloration on part of the screen","A cabinet won't power on","A line across the screen","Flickering or cutting in and out"],
+ hw_when:["Right after installation","Within the last week","Weeks or months ago","It comes and goes"],
+ oth_desc:"Describe the problem",
+ shots:{front:["Full screen, straight on","Stand back far enough to capture the whole wall"],
+  close:["Close-up of the problem","Get close enough that the fault fills the frame"],
+  back:["Back of the affected cabinet","Include the status lights if you can see them"],
+  pkg:["Packaging and shipping label","Show the label and any crush, tear, or puncture"],
+  item:["The damaged or missing items","Show what arrived and what didn't"],
+  proc:["Processor and cabling","Show the front of the processor and the cables going in"],
+  build:["Where you're stuck","Show us exactly what you're looking at"]}
+},
+es:{
+ cat_t:"¿Qué está pasando?", cat_s:"Elige lo más parecido. Toma como un minuto.",
+ c_ship:"Envío o piezas faltantes", c_ship_d:"Llegó dañado, faltan piezas, artículo equivocado o nunca llegó",
+ c_asm:"Montaje o instalación", c_asm_d:"Atascado armando la pantalla, el marco o el soporte de piso",
+ c_cfg:"Configuración de pantalla", c_cfg_d:"Todos los paneles muestran lo mismo, brillo disparejo o sin imagen",
+ c_hw:"Falla de hardware", c_hw_d:"Módulo muerto, píxeles muertos, decoloración, gabinete que no enciende",
+ c_oth:"Otra cosa", c_oth_d:"Descríbelo en tus palabras",
+ id_t:"Tu orden", id_s:"Con la empresa y el número de factura ubicamos tu expediente al instante.",
+ f_company:"Empresa", f_contact:"Tu nombre", f_email:"Correo", f_phone:"Teléfono",
+ f_order:"Número de factura u orden", f_order_h:"Está en tu factura Mirackle. Lo necesitamos para ubicar tus paneles y la garantía.",
+ f_purchase:"Fecha de compra", f_site:"Sitio o local", f_model:"Modelo de panel",
+ f_model_h:"Tómalo de tu factura. Elige No estoy seguro si no lo encuentras.",
+ m_pick:"Selecciona un modelo", m_unsure:"No estoy seguro",
+ det_t:"Detalles", det_s:"Solo lo que importa para este caso.",
+ grid_t:"¿Cuáles gabinetes?", grid_s:"Toca cada gabinete afectado. Esto es lo que hace que salga la pieza correcta.",
+ g_cols:"Gabinetes a lo ancho", g_rows:"Gabinetes de alto", g_build:"Dibujar mi pantalla",
+ g_tap:"Toca los gabinetes afectados", g_sel:"seleccionados", g_skip:"Saltar este paso",
+ med_t:"Fotos", med_s:"Las fotos deciden si lo resolvemos por teléfono o mandamos un técnico.",
+ m_add:"Agregar", m_replace:"Cambiar", m_video:"Video corto (opcional)",
+ m_video_d:"Ideal para parpadeo o fallas que van y vienen. Máximo 20 segundos.",
+ rev_t:"Revisa y envía", rev_s:"Una última mirada antes de que llegue a nuestro equipo técnico.",
+ send:"Enviar a Mirackle", sending:"Enviando", back:"Atrás", next:"Continuar",
+ done_t:"Lo recibimos", done_s:"Tu reporte ya está con nuestro equipo técnico, con fotos y todo.",
+ done_note:"Guarda este número. Úsalo en cualquier llamada o correo sobre este caso.",
+ done_call:"Si tu pantalla está completamente caída o esto afecta un evento en vivo, llámanos ahora y da este número.",
+ copy:"Copiar reporte", copied:"Copiado", email_btn:"Enviar por correo",
+ fb_t:"Un toque más", fb_s:"No pudimos alcanzar nuestros servidores, así que envíalo desde tu propio correo. Adjunta tus fotos al mensaje.",
+ fb_show:"Ver el texto del reporte",
+ cat_l:"Tipo de caso", req_t:"Falta información", req_b:"La empresa y el número de factura son obligatorios para poder ubicar tu orden.",
+ v_long:"Ese video pasa de 20 segundos. Recórtalo o graba uno más corto.",
+ when:"Cuándo empezó", where_d:"Algo más que debamos saber",
+ ship_what:"Qué pasó", ship_a:["Llegó dañado","Faltan piezas del envío","Llegó el artículo equivocado","Nunca llegó"],
+ ship_items:"Cuáles artículos y cuántos",
+ ship_noted:"¿Se anotó el daño en el recibo de entrega?",
+ asm_stage:"Dónde estás atascado",
+ asm_a:["Desempaque e identificar piezas","Soporte de piso o marco","Unir gabinetes entre sí","Cableado de energía","Cableado de datos","Colgar o nivelar"],
+ asm_mount:"Tipo de montaje", asm_m:["Soporte de piso","Montaje en pared","Colgado / rigging","Carro móvil"],
+ cfg_sym:"Qué ves",
+ cfg_a:["Todos los paneles muestran la misma imagen","No hay imagen","Solo parte de la pantalla muestra imagen","Unos paneles más brillantes que otros","Los colores se ven mal","La imagen sale estirada o cortada"],
+ cfg_proc:"Procesadora o sending card", cfg_proc_h:"Ejemplo: NovaStar MCTRL300. Déjalo vacío si no sabes.",
+ cfg_file:"¿Se cargó un archivo de video configuration?",
+ yes:"Sí", no:"No", unsure:"No sé",
+ hw_sym:"Qué ves",
+ hw_a:["Un módulo está completamente oscuro","Píxeles muertos","Decoloración en parte de la pantalla","Un gabinete no enciende","Una línea cruzando la pantalla","Parpadea o se corta"],
+ hw_when:["Justo después de instalar","En la última semana","Hace semanas o meses","Va y viene"],
+ oth_desc:"Describe el problema",
+ shots:{front:["Pantalla completa, de frente","Aléjate lo suficiente para que salga toda la pantalla"],
+  close:["Acercamiento del problema","Acércate hasta que la falla llene la foto"],
+  back:["Parte trasera del gabinete afectado","Incluye las luces de estado si las alcanzas a ver"],
+  pkg:["Empaque y etiqueta de envío","Muestra la etiqueta y cualquier golpe, rotura o perforación"],
+  item:["Los artículos dañados o faltantes","Muestra qué llegó y qué no"],
+  proc:["Procesadora y cableado","Muestra el frente de la procesadora y los cables que entran"],
+  build:["Dónde estás atascado","Muéstranos exactamente lo que estás viendo"]}
+}};
+
+let lang="en";
+const t=k=>T[lang][k];
+
+const S={cat:null,step:0,id:{},det:{},grid:{cols:0,rows:0,sel:[]},media:{},ticket:null,fallback:false};
+const SHOTS={ship:["pkg","item"],asm:["build","front"],cfg:["front","proc"],hw:["front","close","back"],oth:["front"]};
+
+const el=h=>{const d=document.createElement("div");d.innerHTML=h.trim();return d.firstChild};
+const esc=s=>String(s??"").replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
+
+function setLang(l){lang=l;en.setAttribute("aria-pressed",l==="en");es.setAttribute("aria-pressed",l==="es");
+  document.documentElement.lang=l;render()}
+function go(s){S.step=s;window.scrollTo({top:0,behavior:"instant"});render()}
+function pix(){const p=document.getElementById("pix");p.innerHTML="";
+  for(let i=0;i<6;i++){const b=document.createElement("i");if(i<=S.step)b.className="on";p.appendChild(b)}}
+
+/* internal triage — never shown to the customer */
+function priority(){const d=S.det;
+  if(S.cat==="cfg"&&d.sym===1)return "critical";
+  if(S.cat==="hw"&&(d.sym===3||d.sym===5))return "critical";
+  if(S.cat==="ship"&&d.what===3)return "critical";
+  if(S.grid.sel.length>3)return "high";
+  if(S.cat==="ship"||S.cat==="asm")return "high";
+  if(S.cat==="hw"&&d.sym===1)return "low";
+  return "medium";}
+const warranty=()=>S.cat==="hw"||(S.cat==="ship"&&S.det.what!==3);
+function makeTicket(){const d=new Date(),p=n=>String(n).padStart(2,"0");
+  return `MRK-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${Math.random().toString(36).slice(2,6).toUpperCase()}`}
+
+/* ---------------- media ---------------- */
+function compress(file,maxPx=1600,q=.72){return new Promise((res,rej)=>{
+  const img=new Image(),url=URL.createObjectURL(file);
+  img.onload=()=>{let{width:w,height:h}=img;const s=Math.min(1,maxPx/Math.max(w,h));
+    w=Math.round(w*s);h=Math.round(h*s);
+    const c=document.createElement("canvas");c.width=w;c.height=h;
+    c.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+    c.toBlob(b=>res({dataUrl:c.toDataURL("image/jpeg",.45),blob:b,type:"image"}),"image/jpeg",q)};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej()};img.src=url})}
+function videoDuration(f){return new Promise(res=>{const v=document.createElement("video");
+  v.preload="metadata";v.onloadedmetadata=()=>{URL.revokeObjectURL(v.src);res(v.duration)};
+  v.onerror=()=>res(0);v.src=URL.createObjectURL(f)})}
+
+/* ---------------- screens ---------------- */
+function scrCat(){
+  const a=app;a.innerHTML=`<h1>${t("cat_t")}</h1><p class="sub">${t("cat_s")}</p>`;
+  [["ship","c_ship","c_ship_d"],["asm","c_asm","c_asm_d"],["cfg","c_cfg","c_cfg_d"],
+   ["hw","c_hw","c_hw_d"],["oth","c_oth","c_oth_d"]].forEach(([k,n,d],i)=>{
+    const b=el(`<button class="card"><span class="n">${String(i+1).padStart(2,"0")}</span>
+      <span><b>${t(n)}</b><small>${t(d)}</small></span></button>`);
+    b.onclick=()=>{S.cat=k;S.det={};S.grid={cols:0,rows:0,sel:[]};go(1)};a.appendChild(b)})}
+
+function inp(labelKey,key,type="text",hintKey="",required=false){
+  return `<label for="f_${key}">${t(labelKey)}${required?'<span class="r">*</span>':""}</label>
+  <input id="f_${key}" type="${type}" value="${esc(S.id[key])}" oninput="S.id['${key}']=this.value;this.classList.remove('bad')">
+  ${hintKey?`<p class="hint">${t(hintKey)}</p>`:""}`}
+
+function scrId(){
+  const a=app;
+  a.innerHTML=`<p class="eyebrow">${t("cat_l")} — ${t("c_"+S.cat)}</p>
+    <h1>${t("id_t")}</h1><p class="sub">${t("id_s")}</p>
+    ${inp("f_company","company","text","",true)}
+    ${inp("f_order","order","text","f_order_h",true)}
+    ${inp("f_contact","contact")}
+    <div class="two"><div>${inp("f_email","email","email")}</div><div>${inp("f_phone","phone","tel")}</div></div>
+    <div class="two"><div>${inp("f_purchase","purchase","date")}</div><div>${inp("f_site","site")}</div></div>
+    <label for="f_model">${t("f_model")}</label>
+    <select id="f_model" onchange="S.id.model=this.value">
+      <option value="">${t("m_pick")}</option>
+      ${MODELS.map(m=>`<option ${S.id.model===m?"selected":""}>${m}</option>`).join("")}
+      <option ${S.id.model===t("m_unsure")?"selected":""}>${t("m_unsure")}</option>
+    </select><p class="hint">${t("f_model_h")}</p>`;
+  const n=el(`<button class="primary">${t("next")}</button>`);
+  n.onclick=()=>{
+    let bad=false;
+    ["company","order"].forEach(k=>{if(!(S.id[k]||"").trim()){
+      const f=document.getElementById("f_"+k);f.classList.add("bad");if(!bad)f.focus();bad=true}});
+    if(bad){alert(t("req_t")+"\n\n"+t("req_b"));return}
+    go(2)};
+  a.appendChild(n);
+  const b=el(`<button class="ghost">${t("back")}</button>`);b.onclick=()=>go(0);a.appendChild(b)}
+
+function choice(lk,ak,f){return `<label>${t(lk)}</label>`+t(ak).map((o,i)=>
+  `<div class="opt" data-on="${S.det[f]===i?1:0}" onclick="S.det['${f}']=${i};render()">
+    <span class="box"></span><span>${o}</span></div>`).join("")}
+function yn(f){return ["yes","no","unsure"].map((k,i)=>
+  `<div class="opt" data-on="${S.det[f]===i?1:0}" onclick="S.det['${f}']=${i};render()">
+    <span class="box"></span><span>${t(k)}</span></div>`).join("")}
+
+function scrDet(){
+  const a=app;let h=`<h1>${t("det_t")}</h1><p class="sub">${t("det_s")}</p>`;
+  if(S.cat==="ship"){h+=choice("ship_what","ship_a","what")
+    +`<label>${t("ship_items")}</label><textarea oninput="S.det.items=this.value">${esc(S.det.items)}</textarea>`
+    +`<label>${t("ship_noted")}</label>`+yn("noted")}
+  if(S.cat==="asm"){h+=choice("asm_stage","asm_a","stage")+choice("asm_mount","asm_m","mount")
+    +`<label>${t("where_d")}</label><textarea oninput="S.det.notes=this.value">${esc(S.det.notes)}</textarea>`}
+  if(S.cat==="cfg"){h+=choice("cfg_sym","cfg_a","sym")
+    +`<label>${t("cfg_proc")}</label><input value="${esc(S.det.proc)}" oninput="S.det.proc=this.value">
+      <p class="hint">${t("cfg_proc_h")}</p><label>${t("cfg_file")}</label>`+yn("cfgfile")}
+  if(S.cat==="hw"){h+=choice("hw_sym","hw_a","sym")+choice("when","hw_when","when")
+    +`<label>${t("where_d")}</label><textarea oninput="S.det.notes=this.value">${esc(S.det.notes)}</textarea>`}
+  if(S.cat==="oth"){h+=`<label>${t("oth_desc")}</label><textarea oninput="S.det.notes=this.value">${esc(S.det.notes)}</textarea>`}
+  a.innerHTML=h;
+  const n=el(`<button class="primary">${t("next")}</button>`);
+  n.onclick=()=>go(S.cat==="hw"||S.cat==="cfg"?3:4);a.appendChild(n);
+  const b=el(`<button class="ghost">${t("back")}</button>`);b.onclick=()=>go(1);a.appendChild(b)}
+
+function scrGrid(){
+  const a=app,g=S.grid;
+  a.innerHTML=`<h1>${t("grid_t")}</h1><p class="sub">${t("grid_s")}</p>
+    <div class="two">
+      <div><label>${t("g_cols")}</label><input type="number" min="1" max="40" inputmode="numeric" id="gc" value="${g.cols||""}"></div>
+      <div><label>${t("g_rows")}</label><input type="number" min="1" max="40" inputmode="numeric" id="gr" value="${g.rows||""}"></div>
+    </div>`;
+  const build=el(`<button class="ghost">${t("g_build")}</button>`);
+  build.onclick=()=>{g.cols=Math.min(40,Math.max(1,+gc.value||0));
+    g.rows=Math.min(40,Math.max(1,+gr.value||0));g.sel=[];render()};
+  a.appendChild(build);
+  if(g.cols&&g.rows){
+    const w=el(`<div class="stage"><div class="gridwrap">
+      <p class="hint" style="margin:0 0 12px;text-align:center">${t("g_tap")} — <b style="color:var(--white)">${g.sel.length}</b> ${t("g_sel")}</p>
+      <div class="gridbox" id="gb" style="grid-template-columns:repeat(${g.cols},1fr);max-width:${Math.min(460,g.cols*42)}px"></div>
+      </div><div class="floor"></div></div>`);
+    a.appendChild(w);
+    for(let r=1;r<=g.rows;r++)for(let c=1;c<=g.cols;c++){
+      const id=`R${r}C${c}`;
+      const cell=el(`<div class="cell" data-on="${g.sel.includes(id)?1:0}" title="${id}"></div>`);
+      cell.onclick=()=>{const i=g.sel.indexOf(id);i>-1?g.sel.splice(i,1):g.sel.push(id);render()};
+      gb.appendChild(cell)}}
+  const n=el(`<button class="primary">${t("next")}</button>`);n.onclick=()=>go(4);a.appendChild(n);
+  const s=el(`<button class="ghost">${t("g_skip")}</button>`);
+  s.onclick=()=>{S.grid={cols:0,rows:0,sel:[]};go(4)};a.appendChild(s);
+  const b=el(`<button class="ghost">${t("back")}</button>`);b.onclick=()=>go(2);a.appendChild(b)}
+
+function scrMedia(){
+  const a=app;a.innerHTML=`<h1>${t("med_t")}</h1><p class="sub">${t("med_s")}</p>`;
+  (SHOTS[S.cat]||["front"]).forEach(k=>{
+    const m=S.media[k],lbl=t("shots")[k];
+    const s=el(`<div class="shot ${m?"done":""}">
+      ${m&&m.dataUrl?`<img class="thumb" src="${m.dataUrl}" alt="">`:`<div class="thumb"></div>`}
+      <div class="t"><b>${lbl[0]}</b><small>${lbl[1]}</small></div>
+      <button class="pick">${m?t("m_replace"):t("m_add")}</button>
+      <input type="file" accept="image/*" capture="environment"></div>`);
+    const i=s.querySelector("input"),btn=s.querySelector(".pick");
+    btn.onclick=()=>i.click();
+    i.onchange=async e=>{const f=e.target.files[0];if(!f)return;btn.textContent="…";
+      try{S.media[k]=await compress(f);S.media[k].name=lbl[0];render()}catch{btn.textContent=t("m_add")}};
+    a.appendChild(s)});
+  const v=S.media.video;
+  const vs=el(`<div class="shot ${v?"done":""}" style="margin-top:18px">
+    <div class="thumb"></div><div class="t"><b>${t("m_video")}</b><small>${t("m_video_d")}</small></div>
+    <button class="pick">${v?t("m_replace"):t("m_add")}</button>
+    <input type="file" accept="video/*" capture="environment"></div>`);
+  const vi=vs.querySelector("input");
+  vs.querySelector(".pick").onclick=()=>vi.click();
+  vi.onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    const d=await videoDuration(f);
+    if(d>MAX_VIDEO_SECONDS+1){alert(t("v_long"));vi.value="";return}
+    S.media.video={blob:f,type:"video",name:"Video",dataUrl:null,seconds:Math.round(d)};render()};
+  a.appendChild(vs);
+  const n=el(`<button class="primary">${t("next")}</button>`);n.onclick=()=>go(5);a.appendChild(n);
+  const b=el(`<button class="ghost">${t("back")}</button>`);
+  b.onclick=()=>go(S.cat==="hw"||S.cat==="cfg"?3:2);a.appendChild(b)}
+
+/* internal report — for Mirackle, not for the customer */
+function reportText(){
+  const d=S.det,E=T.en,A=k=>E[k],L=[];
+  L.push(`TICKET: ${S.ticket}`);
+  L.push(`PRIORITY: ${priority().toUpperCase()}`);
+  L.push(`CASE TYPE: ${E["c_"+S.cat]}`);
+  L.push(`WARRANTY CLAIM CANDIDATE: ${warranty()?"YES":"NO"}`);
+  L.push(`SUBMITTED: ${new Date().toISOString()}`);
+  L.push(`CUSTOMER LANGUAGE: ${lang.toUpperCase()}`);
+  L.push("","— CUSTOMER —");
+  L.push(`Company: ${S.id.company||"-"}`);
+  L.push(`Invoice / Order: ${S.id.order||"-"}`);
+  L.push(`Contact: ${S.id.contact||"-"}`);
+  L.push(`Email: ${S.id.email||"-"}   Phone: ${S.id.phone||"-"}`);
+  L.push(`Purchase date: ${S.id.purchase||"-"}`);
+  L.push(`Site: ${S.id.site||"-"}`);
+  L.push(`Panel model: ${S.id.model||"-"}`);
+  L.push("","— ISSUE —");
+  if(S.cat==="ship"){L.push(`What happened: ${A("ship_a")[d.what]??"-"}`);
+    L.push(`Items: ${d.items||"-"}`);
+    L.push(`Noted on delivery receipt: ${["Yes","No","Not sure"][d.noted]??"-"}`)}
+  if(S.cat==="asm"){L.push(`Stuck at: ${A("asm_a")[d.stage]??"-"}`);
+    L.push(`Mount type: ${A("asm_m")[d.mount]??"-"}`);L.push(`Notes: ${d.notes||"-"}`)}
+  if(S.cat==="cfg"){L.push(`Symptom: ${A("cfg_a")[d.sym]??"-"}`);
+    L.push(`Processor: ${d.proc||"-"}`);
+    L.push(`Video config loaded: ${["Yes","No","Not sure"][d.cfgfile]??"-"}`)}
+  if(S.cat==="hw"){L.push(`Symptom: ${A("hw_a")[d.sym]??"-"}`);
+    L.push(`Started: ${A("hw_when")[d.when]??"-"}`);L.push(`Notes: ${d.notes||"-"}`)}
+  if(S.cat==="oth")L.push(`Description: ${d.notes||"-"}`);
+  if(S.grid.cols){L.push("",`— WALL LAYOUT — ${S.grid.cols} across x ${S.grid.rows} high`);
+    L.push(`Affected cabinets (${S.grid.sel.length}): ${S.grid.sel.join(", ")||"none marked"}`)}
+  const f=Object.keys(S.media);
+  L.push("",`— MEDIA — ${f.length} file(s): ${f.join(", ")||"none"}`);
+  return L.join("\n")}
+
+function scrRev(){
+  if(!S.ticket)S.ticket=makeTicket();
+  const a=app;
+  a.innerHTML=`<h1>${t("rev_t")}</h1><p class="sub">${t("rev_s")}</p>
+    <div class="rev">
+      <div class="row"><span>${t("cat_l")}</span><span>${t("c_"+S.cat)}</span></div>
+      <div class="row"><span>${t("f_company")}</span><span>${esc(S.id.company)}</span></div>
+      <div class="row"><span>${t("f_order")}</span><span>${esc(S.id.order)}</span></div>
+      ${S.id.model?`<div class="row"><span>${t("f_model")}</span><span>${esc(S.id.model)}</span></div>`:""}
+      ${S.grid.sel.length?`<div class="row"><span>${t("grid_t")}</span><span>${S.grid.sel.join(", ")}</span></div>`:""}
+      <div class="row"><span>${t("med_t")}</span><span>${Object.keys(S.media).length}</span></div>
+    </div>`;
+  const n=el(`<button class="primary">${t("send")}</button>`);n.onclick=()=>submit(n);a.appendChild(n);
+  const b=el(`<button class="ghost">${t("back")}</button>`);b.onclick=()=>go(4);a.appendChild(b)}
+
+async function submit(btn){
+  btn.disabled=true;btn.innerHTML=`<span class="spin"></span> ${t("sending")}`;
+  const fd=new FormData();
+  fd.append("ticket",S.ticket);
+  fd.append("priority",priority());
+  fd.append("category",S.cat);
+  fd.append("warranty",warranty()?"1":"0");
+  fd.append("company",S.id.company||"");
+  fd.append("invoice",S.id.order||"");
+  fd.append("lang",lang);
+  fd.append("payload",JSON.stringify({id:S.id,det:S.det,grid:S.grid}));
+  fd.append("report",reportText());
+  Object.entries(S.media).forEach(([k,m])=>fd.append("file_"+k,m.blob,k+(m.type==="video"?".mp4":".jpg")));
+  try{const r=await fetch(API_ENDPOINT,{method:"POST",body:fd});if(!r.ok)throw 0;S.fallback=false}
+  catch{S.fallback=true}
+  go(6)}
+
+function scrDone(){
+  const a=app;
+  if(S.fallback){
+    const subj=encodeURIComponent(`[${priority().toUpperCase()}] ${S.ticket} — ${T.en["c_"+S.cat]} — ${S.id.company||""} — INV ${S.id.order||""}`);
+    const body=encodeURIComponent(reportText());
+    a.innerHTML=`<h1>${t("fb_t")}</h1><p class="sub">${t("fb_s")}</p>
+      <div class="tid">${S.ticket}</div>`;
+    const m=el(`<button class="primary" style="margin-top:6px">${t("email_btn")}</button>`);
+    m.onclick=()=>location.href=`mailto:${SUPPORT_EMAIL}?subject=${subj}&body=${body}`;a.appendChild(m);
+    const c=el(`<button class="ghost">${t("copy")}</button>`);
+    c.onclick=async()=>{try{await navigator.clipboard.writeText(reportText());c.textContent=t("copied")}catch{}};
+    a.appendChild(c);
+    const dt=el(`<details><summary>${t("fb_show")}</summary><pre>${esc(reportText())}</pre></details>`);
+    a.appendChild(dt);return}
+  a.innerHTML=`
+    <div class="seal"><svg width="66" height="74" viewBox="0 0 26 29" aria-hidden="true">
+      <path d="M13 1L24.5 7.6v13.8L13 28 1.5 21.4V7.6z" fill="none" stroke="#D9382C" stroke-width="2"/>
+      <path d="M7.5 14.6l3.8 3.8 7.2-7.6" fill="none" stroke="#FFF" stroke-width="2.3"
+        stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h1 style="text-align:center;margin-top:8px">${t("done_t")}</h1>
+    <p class="sub" style="text-align:center;margin-inline:auto">${t("done_s")}</p>
+    <div class="tid">${S.ticket}</div>
+    <div class="rev">
+      <div class="row"><span>${t("cat_l")}</span><span>${t("c_"+S.cat)}</span></div>
+      <div class="row"><span>${t("f_company")}</span><span>${esc(S.id.company)}</span></div>
+      <div class="row"><span>${t("f_order")}</span><span>${esc(S.id.order)}</span></div>
+    </div>
+    <div class="note">${t("done_note")}<br><br>${t("done_call")}</div>`}
+
+const app=document.getElementById("app");
+function render(){pix();({0:scrCat,1:scrId,2:scrDet,3:scrGrid,4:scrMedia,5:scrRev,6:scrDone})[S.step]()}
+render();
+</script>
+</body>
+</html>
