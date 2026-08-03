@@ -27,6 +27,10 @@ export default {
       if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
       return handleSubmit(request, env, url);
     }
+    if (url.pathname === "/api/pdf") {
+      if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+      return handlePdf(request, env, url);
+    }
     if (url.pathname.startsWith("/f/")) {
       return serveFile(request, env, url);
     }
@@ -45,9 +49,6 @@ async function handleSubmit(request, env, url) {
     return json({ error: "Bad form data" }, 400);
   }
 
-  const ticket = clean(form.get("ticket"), 40);
-  if (!/^MRK-\d{6}-[A-Z0-9]{4}$/.test(ticket)) return json({ error: "Bad ticket id" }, 400);
-
   const company = clean(form.get("company"), 200);
   const invoice = clean(form.get("invoice"), 100);
   if (!company || !invoice) return json({ error: "Company and invoice are required" }, 400);
@@ -63,8 +64,10 @@ async function handleSubmit(request, env, url) {
   try { payload = JSON.parse(form.get("payload") || "{}"); } catch {}
   const id = payload.id || {};
 
+  const ticket = await nextTicket(env);
   const token  = randomToken();
   const prefix = warranty ? "keep" : "temp";
+  const pdfPending = form.get("pdf_pending") === "1";
 
   /* ---- store files in R2 ---- */
   const stored = [];
@@ -111,19 +114,85 @@ async function handleSubmit(request, env, url) {
     // media is already saved; keep going so the email still goes out
   }
 
-  /* ---- email the team ---- */
+  /* ---- email now, unless the customer PDF is still on its way ---- */
+  let emailed = false;
+  if (!pdfPending) {
+    try {
+      emailed = await sendEmail(env, url.origin, {
+        ticket, priority, category, warranty, company, invoice,
+        id, report, stored, token, lang,
+      });
+    } catch (e) { console.error("Email failed", e); }
+  }
+
+  return json({ ok: true, ticket, token, files: stored.length, emailed });
+}
+
+/* ---- second leg: the PDF arrives, then the email goes out ---- */
+async function handlePdf(request, env, url) {
+  let form;
+  try { form = await request.formData(); } catch { return json({ error: "Bad form data" }, 400); }
+
+  const ticket = clean(form.get("ticket"), 40);
+  const token  = clean(form.get("token"), 60);
+  if (!/^T-\d{3,}$/.test(ticket)) return json({ error: "Bad ticket id" }, 400);
+
+  let row;
+  try {
+    row = await env.DB.prepare(
+      `SELECT token, warranty, priority, category, company, invoice, payload, report, files, lang
+       FROM tickets WHERE ticket = ?`).bind(ticket).first();
+  } catch (e) { console.error("D1 read failed", e); }
+  if (!row || !timingSafeEqual(row.token, token)) return json({ error: "Not authorized" }, 403);
+
+  const prefix = row.warranty ? "keep" : "temp";
+  const file   = form.get("file_report_pdf");
+  const stored = safeParse(row.files, []);
+
+  if (file && typeof file !== "string" && file.size > 0 && file.size <= MAX_FILE_BYTES) {
+    const path = `${prefix}/${ticket}/report.pdf`;
+    try {
+      await env.MEDIA.put(path, file.stream(), {
+        httpMetadata: { contentType: "application/pdf" },
+      });
+      stored.push({ name: "report.pdf", path, size: file.size, type: "application/pdf" });
+      await env.DB.prepare("UPDATE tickets SET files = ? WHERE ticket = ?")
+        .bind(JSON.stringify(stored), ticket).run();
+    } catch (e) { console.error("PDF store failed", e); }
+  }
+
+  const payload = safeParse(row.payload, {});
   let emailed = false;
   try {
     emailed = await sendEmail(env, url.origin, {
-      ticket, priority, category, warranty, company, invoice,
-      id, report, stored, token, lang,
+      ticket,
+      priority: row.priority,
+      category: row.category,
+      warranty: !!row.warranty,
+      company: row.company,
+      invoice: row.invoice,
+      id: payload.id || {},
+      report: row.report || "",
+      stored,
+      token: row.token,
+      lang: row.lang || "en",
     });
-  } catch (e) {
-    console.error("Email failed", e);
-  }
+  } catch (e) { console.error("Email failed", e); }
 
-  return json({ ok: true, ticket, files: stored.length, emailed });
+  return json({ ok: true, emailed });
 }
+
+/* atomic sequential counter: T-001, T-002, ... */
+async function nextTicket(env) {
+  try {
+    const r = await env.DB.prepare(
+      "UPDATE counters SET value = value + 1 WHERE name = 'ticket' RETURNING value").first();
+    if (r && r.value) return "T-" + String(r.value).padStart(3, "0");
+  } catch (e) { console.error("counter failed", e); }
+  return "T-" + String(Date.now() % 100000).padStart(3, "0");
+}
+
+const safeParse = (s, d) => { try { return JSON.parse(s); } catch { return d; } };
 
 /* ============================ EMAIL ============================ */
 
@@ -146,6 +215,7 @@ async function sendEmail(env, origin, t) {
   const fromEmail = env.MAIL_FROM_EMAIL || "no-reply@mirackle.us";
   const fromName  = env.MAIL_FROM_NAME  || "Mirackle Support";
 
+  const display = `Mirackle ${t.ticket}`;
   const link = f => `${origin}/f/${t.ticket}/${encodeURIComponent(f.name)}?t=${t.token}`;
   const photos = t.stored.filter(f => !f.name.endsWith(".pdf") && !f.type.startsWith("video"));
   const videos = t.stored.filter(f => f.type.startsWith("video"));
@@ -171,7 +241,7 @@ async function sendEmail(env, origin, t) {
     ${t.warranty ? `<span style="display:inline-block;margin-left:6px;border:1px solid #D9382C;color:#D9382C;
       font-size:11px;font-weight:700;letter-spacing:.1em;padding:5px 10px;border-radius:6px">WARRANTY</span>` : ""}
     <div style="font-family:ui-monospace,Menlo,monospace;font-size:22px;color:#0C0C10;margin:14px 0 4px">
-      ${esc(t.ticket)}</div>
+      ${esc(display)}</div>
     <div style="color:#70707C;font-size:14px">${esc(CAT_LABEL[t.category] || t.category)}</div>
   </div>
 
@@ -220,7 +290,7 @@ async function sendEmail(env, origin, t) {
  </div>
 </div>`;
 
-  const subject = `[${t.priority.toUpperCase()}] ${t.ticket} — ${CAT_LABEL[t.category] || t.category} — ${t.company} — INV ${t.invoice}`;
+  const subject = `[${t.priority.toUpperCase()}] ${display} — ${CAT_LABEL[t.category] || t.category} — ${t.company} — INV ${t.invoice}`;
 
   /* attach the customer PDF (small enough to email) */
   let pdfB64 = null;
@@ -240,7 +310,7 @@ async function sendEmail(env, origin, t) {
       htmlContent: html,
     };
     if (isEmail(t.id.email)) body.replyTo = { email: t.id.email };
-    if (pdfB64) body.attachment = [{ name: `${t.ticket}.pdf`, content: pdfB64 }];
+    if (pdfB64) body.attachment = [{ name: `Mirackle-${t.ticket}.pdf`, content: pdfB64 }];
 
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
@@ -266,7 +336,7 @@ async function sendEmail(env, origin, t) {
     html,
   };
   if (isEmail(t.id.email)) body.reply_to = t.id.email;
-  if (pdfB64) body.attachments = [{ filename: `${t.ticket}.pdf`, content: pdfB64 }];
+  if (pdfB64) body.attachments = [{ filename: `Mirackle-${t.ticket}.pdf`, content: pdfB64 }];
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
