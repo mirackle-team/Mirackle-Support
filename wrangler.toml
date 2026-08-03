@@ -19,5 +19,3 @@ database_id = "7ad0dc7e-c09d-4c5b-9166-3d1fa7f8b882"
 MAIL_TO = "contact@mirackle.us"
 MAIL_FROM_EMAIL = "marlonlamilla7@gmail.com"
 MAIL_FROM_NAME = "Mirackle Support"
-
-[[unsafe.bindings]]
