@@ -16,7 +16,7 @@ bucket_name = "mirackle-support-media"
 [[d1_databases]]
 binding = "DB"
 database_name = "mirackle-tickets"
-database_id = "PASTE_YOUR_DATABASE_ID_HERE"
+database_id = "7ad0dc7e-c09d-4c5b-9166-3d1fa7f8b882"
 
 [vars]
 # Where tickets land.
