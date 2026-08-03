@@ -444,8 +444,10 @@ function priority(){const d=S.det;
   if(S.cat==="hw"&&d.sym===1)return "low";
   return "medium"}
 const warranty=()=>S.cat==="hw"||(S.cat==="ship"&&S.det.what!==3);
+/* the real number is assigned by the server; this is only for offline fallback */
 const makeTicket=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");
-  return `MRK-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${Math.random().toString(36).slice(2,6).toUpperCase()}`};
+  return `T-${String(d.getFullYear()).slice(2)}${p(d.getMonth()+1)}${p(d.getDate())}-${Math.random().toString(36).slice(2,6).toUpperCase()}`};
+const shown=()=>`Mirackle ${S.ticket}`;
 
 function compress(file,maxPx=1500,q=.72){return new Promise((res,rej)=>{
   const img=new Image(),url=URL.createObjectURL(file);
@@ -582,7 +584,7 @@ function issueLines(dict){
 
 function reportText(){
   const E=T.en,L=[];
-  L.push(`TICKET: ${S.ticket}`,`PRIORITY: ${priority().toUpperCase()}`,
+  L.push(`TICKET: Mirackle ${S.ticket||"(pending)"}`,`PRIORITY: ${priority().toUpperCase()}`,
     `CASE TYPE: ${E["c_"+S.cat]}`,`WARRANTY CLAIM CANDIDATE: ${warranty()?"YES":"NO"}`,
     `SUBMITTED: ${new Date().toISOString()}`,`CUSTOMER LANGUAGE: ${lang.toUpperCase()}`,
     "","— CUSTOMER —",
@@ -622,7 +624,7 @@ async function buildPDF(){
     F("bold",7.4,MUT);
     doc.text(t("p_title").toUpperCase(),W-M,15.5,{align:"right"});
     doc.setFont("courier","bold");doc.setFontSize(12.5);doc.setTextColor(...RED);
-    doc.text(S.ticket,W-M,22,{align:"right"});
+    doc.text(shown(),W-M,22,{align:"right"});
     F("normal",7,MUT);
     doc.text(stamp(),W-M,26.8,{align:"right"});
     doc.setDrawColor(...LINE);doc.setLineWidth(.3);doc.line(M,34,W-M,34);
@@ -633,7 +635,7 @@ async function buildPDF(){
     doc.setDrawColor(...LINE);doc.setLineWidth(.3);doc.line(M,H-14,W-M,H-14);
     F("normal",6.8,MUT);
     doc.text("mirackle.us",M,H-9.6);
-    doc.text(S.ticket,W/2,H-9.6,{align:"center"});
+    doc.text(shown(),W/2,H-9.6,{align:"center"});
     doc.text(`${t("p_page")} ${page}`,W-M,H-9.6,{align:"right"});
   }
   function need(h){ if(y+h>BOT){footer();doc.addPage();header();return true} return false }
@@ -771,7 +773,6 @@ async function makePdfBlob(){
 
 /* ================= review / submit / done ================= */
 function scrRev(){
-  if(!S.ticket)S.ticket=makeTicket();
   app.innerHTML=`<h1>${t("rev_t")}</h1><p class="sub">${t("rev_s")}</p>
     <div class="rev">
       <div class="row"><span>${t("cat_l")}</span><span>${t("c_"+S.cat)}</span></div>
@@ -786,31 +787,53 @@ function scrRev(){
 
 async function submit(btn){
   btn.disabled=true;btn.innerHTML=`<span class="spin"></span>${t("sending")}`;
-  S.pdfBlob=await makePdfBlob();
+  const pdfReady=!!window.jspdf;
+
+  /* leg 1 — send the case, the server assigns the ticket number */
   const fd=new FormData();
-  fd.append("ticket",S.ticket);fd.append("priority",priority());fd.append("category",S.cat);
+  fd.append("priority",priority());fd.append("category",S.cat);
   fd.append("warranty",warranty()?"1":"0");fd.append("company",S.id.company||"");
   fd.append("invoice",S.id.order||"");fd.append("lang",lang);
+  fd.append("pdf_pending",pdfReady?"1":"0");
   fd.append("payload",JSON.stringify({id:S.id,det:S.det,grid:S.grid}));
   fd.append("report",reportText());
-  if(S.pdfBlob)fd.append("file_report_pdf",S.pdfBlob,S.ticket+".pdf");
-  Object.entries(S.media).forEach(([k,m])=>fd.append("file_"+k,m.blob,k+(m.type==="video"?".mp4":".jpg")));
-  try{const r=await fetch(API_ENDPOINT,{method:"POST",body:fd});if(!r.ok)throw 0;S.fallback=false}
-  catch{S.fallback=true}
+  Object.entries(S.media).forEach(([k,m])=>fd.append("file_"+k,m.blob,k+".jpg"));
+
+  let token=null;
+  try{
+    const r=await fetch(API_ENDPOINT,{method:"POST",body:fd});
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    if(!d.ticket)throw 0;
+    S.ticket=d.ticket; token=d.token; S.fallback=false;
+  }catch{
+    S.ticket=makeTicket(); S.fallback=true;
+    S.pdfBlob=await makePdfBlob();
+    return go(6);
+  }
+
+  /* leg 2 — build the PDF with the real number, then it triggers the email */
+  S.pdfBlob=await makePdfBlob();
+  if(S.pdfBlob&&token){
+    const f2=new FormData();
+    f2.append("ticket",S.ticket);f2.append("token",token);
+    f2.append("file_report_pdf",S.pdfBlob,"report.pdf");
+    try{await fetch("/api/pdf",{method:"POST",body:f2})}catch(e){console.error(e)}
+  }
   go(6)}
 
 function downloadPdf(btn){
   if(!S.pdfBlob){btn.textContent=t("pdf_wait");return}
   const u=URL.createObjectURL(S.pdfBlob),a=document.createElement("a");
-  a.href=u;a.download=S.ticket+".pdf";a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+  a.href=u;a.download="Mirackle-"+S.ticket+".pdf";a.click();setTimeout(()=>URL.revokeObjectURL(u),3000)}
 
 function scrDone(){
   const pdfBtn=()=>{const p=el(`<button class="${S.fallback?"primary":"ghost"}">${t("pdf")}</button>`);
     p.onclick=()=>downloadPdf(p);return p};
   if(S.fallback){
-    const subj=encodeURIComponent(`[${priority().toUpperCase()}] ${S.ticket} — ${T.en["c_"+S.cat]} — ${S.id.company||""} — INV ${S.id.order||""}`);
+    const subj=encodeURIComponent(`[${priority().toUpperCase()}] ${shown()} — ${T.en["c_"+S.cat]} — ${S.id.company||""} — INV ${S.id.order||""}`);
     const body=encodeURIComponent(reportText());
-    app.innerHTML=`<h1>${t("fb_t")}</h1><p class="sub">${t("fb_s")}</p><div class="tid">${S.ticket}</div>`;
+    app.innerHTML=`<h1>${t("fb_t")}</h1><p class="sub">${t("fb_s")}</p><div class="tid">${shown()}</div>`;
     app.appendChild(pdfBtn());
     const m=el(`<button class="ghost">${t("email_btn")}</button>`);
     m.onclick=()=>location.href=`mailto:${SUPPORT_EMAIL}?subject=${subj}&body=${body}`;app.appendChild(m);
@@ -826,7 +849,7 @@ function scrDone(){
     </div></div>
     <h1 style="text-align:center;margin-top:10px">${t("done_t")}</h1>
     <p class="sub" style="text-align:center;margin-inline:auto">${t("done_s")}</p>
-    <div class="tid">${S.ticket}</div>
+    <div class="tid">${shown()}</div>
     <div class="rev">
       <div class="row"><span>${t("cat_l")}</span><span>${t("c_"+S.cat)}</span></div>
       <div class="row"><span>${t("f_company")}</span><span>${esc(S.id.company)}</span></div>
