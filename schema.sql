@@ -29,3 +29,10 @@ CREATE INDEX IF NOT EXISTS idx_invoice  ON tickets(invoice);
 CREATE INDEX IF NOT EXISTS idx_model    ON tickets(model);
 CREATE INDEX IF NOT EXISTS idx_category ON tickets(category);
 CREATE INDEX IF NOT EXISTS idx_warranty ON tickets(warranty);
+
+-- Sequential ticket numbering (T-001, T-002, ...)
+CREATE TABLE IF NOT EXISTS counters (
+  name  TEXT PRIMARY KEY,
+  value INTEGER NOT NULL
+);
+INSERT OR IGNORE INTO counters (name, value) VALUES ('ticket', 0);
