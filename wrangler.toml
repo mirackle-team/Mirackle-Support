@@ -2,33 +2,20 @@ name = "mirackle-support"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
-# The form (index.html) lives here and is served automatically.
 [assets]
 directory = "./public"
 binding = "ASSETS"
 
-# Photos, video and the generated PDF.
 [[r2_buckets]]
 binding = "MEDIA"
 bucket_name = "mirackle-support-media"
 
-# Permanent ticket history: text only, survives photo deletion.
 [[d1_databases]]
 binding = "DB"
 database_name = "mirackle-tickets"
-database_id = "7ad0dc7e-c09d-4c5b-9166-3d1fa7f8b882"
+database_id = "PEGA_AQUI_TU_DATABASE_ID"
 
 [vars]
-# Where tickets land.
 MAIL_TO = "contact@mirackle.us"
 MAIL_FROM_EMAIL = "contact@mirackle.us"
-MAIL_FROM_NAME  = "Mirackle Support"
-
-# Sender. With Brevo this must be an address you verified with the 6-digit code.
-MAIL_FROM_EMAIL = "PUT_YOUR_VERIFIED_SENDER_HERE"
-MAIL_FROM_NAME  = "Mirackle Support"
-
-# API keys are SECRETS. Never put them in this file.
-# Add BREVO_API_KEY (or RESEND_API_KEY) in the Cloudflare dashboard
-# under Settings -> Variables and Secrets.
-# If both exist, Brevo wins.
+MAIL_FROM_NAME = "Mirackle Support"
