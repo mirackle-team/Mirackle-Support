@@ -239,7 +239,7 @@ async function sendEmail(env, origin, t) {
       subject,
       htmlContent: html,
     };
-    if (t.id.email) body.replyTo = { email: t.id.email };
+    if (isEmail(t.id.email)) body.replyTo = { email: t.id.email };
     if (pdfB64) body.attachment = [{ name: `${t.ticket}.pdf`, content: pdfB64 }];
 
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -265,7 +265,7 @@ async function sendEmail(env, origin, t) {
     subject,
     html,
   };
-  if (t.id.email) body.reply_to = t.id.email;
+  if (isEmail(t.id.email)) body.reply_to = t.id.email;
   if (pdfB64) body.attachments = [{ filename: `${t.ticket}.pdf`, content: pdfB64 }];
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -358,4 +358,8 @@ function toBase64(buf) {
     bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
   }
   return btoa(bin);
+}
+
+function isEmail(v) {
+  return typeof v === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 }
